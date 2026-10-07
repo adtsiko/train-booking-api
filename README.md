@@ -8,13 +8,30 @@ REST API for booking train seats. A train has 4 wagons with 50 seats each. Seat 
 handlers → service → repository → models
 ```
 
+## Configuration
+
+All settings are optional. Set them as environment variables when starting the server.
+
+| Variable   | Default      | Description                          |
+|------------|--------------|--------------------------------------|
+| `APP_PORT` | `3001`       | TCP port the HTTP server binds to    |
+| `DATA_PATH`| `train.json` | Path to the JSON file for seat data  |
+
+Example:
+
+```bash
+APP_PORT=3001 DATA_PATH=./data/train.json cargo run
+```
+
+No secrets are required to run the API locally.
+
 ## Run
 
 ```bash
 cargo run
 ```
 
-Server listens on `http://127.0.0.1:3001`.
+By default the server listens on `http://127.0.0.1:3001`.
 
 ## Book a seat
 
