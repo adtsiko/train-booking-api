@@ -3,6 +3,7 @@ use std::fs;
 use std::io::{self, Result, Write};
 
 use crate::models::{Train, Wagon, Seat, SeatStatus};
+use crate::repository::train_repository::TrainRepository;
 
 #[derive(Clone)]
 pub struct TrainCompanyFileRepository {
@@ -12,12 +13,8 @@ pub struct TrainCompanyFileRepository {
 const WAGON_NUMBER: u32 = 4;
 const NUMBER_OF_SEATS_PER_WAGON: u32  = 50;
 
-impl TrainCompanyFileRepository {
-    pub fn new(path: String) -> Self {
-        Self{path}
-    } 
-
-    pub fn load_train(&self) -> Result<Vec<Train>> {
+impl TrainRepository for TrainCompanyFileRepository {
+    fn load_train(&self) -> Result<Vec<Train>> {
         if !Path::new(&self.path).exists(){
             self.init_file()?;
         }
@@ -28,11 +25,17 @@ impl TrainCompanyFileRepository {
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
-    pub fn save_train(&self, train: &[Train]) -> Result<()> {
+    fn save_train(&self, train: &[Train]) -> Result<()> {
         let json = serde_json::to_string_pretty(&train)?;
 
         fs::write(&self.path, json)?;
         Ok(())
+    }
+}
+
+impl TrainCompanyFileRepository {
+    pub fn new(path: String) -> Self {
+        Self{path}
     }
 
     fn initialise_train(&self) -> Result<Train> {
@@ -61,6 +64,7 @@ impl TrainCompanyFileRepository {
         fs::write(&self.path, json)?;
         Ok(())
     }
+
 }
 
 #[cfg(test)]

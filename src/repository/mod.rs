@@ -1,2 +1,3 @@
-pub mod train_company;
-pub use train_company::TrainCompanyFileRepository;
+pub mod train_file_repository;
+pub mod train_repository;
+pub use train_file_repository::TrainCompanyFileRepository;

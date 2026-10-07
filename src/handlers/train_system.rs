@@ -1,10 +1,11 @@
 use axum::{http::StatusCode, Json};
 
 use crate::models::{BookingRequest, Booking, BookingError, ErrorResponse};
+use crate::repository::train_repository::TrainRepository;
 use crate::service::TrainService;
 
-pub async fn booking(
-    axum::extract::State(service): axum::extract::State<TrainService>,
+pub async fn booking<R: TrainRepository + Clone>(
+    axum::extract::State(service): axum::extract::State<TrainService<R>>,
     Json(body): Json<BookingRequest>,
 ) -> Result<Json<Booking>, (StatusCode, Json<ErrorResponse>)> {
     service.

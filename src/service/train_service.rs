@@ -1,28 +1,29 @@
 use uuid::Uuid;
-use crate::repository::TrainCompanyFileRepository;
+use crate::repository::train_repository::TrainRepository;
 use crate::models::{Train, BookingRequest, Booking, User, Seat, SeatSelection, BookingError, SeatStatus};
 
 const NUMBER_OF_SEATS_PER_WAGON: u32  = 50;
 const WAGON_NUMBER: u32 = 4;
 
 #[derive(Clone)]
-pub struct TrainService {
-    repo: TrainCompanyFileRepository
+pub struct TrainService<R: TrainRepository> {
+    repo: R
 }
 
-impl TrainService {
-    pub fn new(repo: TrainCompanyFileRepository) -> Self {
+impl <R: TrainRepository> TrainService<R> {
+    pub fn new(repo: R) -> Self {
         Self{repo}
     }
 
     pub fn book_trip(&self, booking_request: BookingRequest) -> Result<Booking, BookingError>  {
-        TrainService::validate_booking(&booking_request)?;
+        Self::validate_booking(&booking_request)?;
         let mut trains  = self.repo.load_train()?;
         let train = &mut trains[0];
-        TrainService::check_available_seats(train, &booking_request.requested_seats)?;
-        TrainService::book_seats(train, &booking_request.requested_seats)?;
-        let booking = TrainService::create_booking(booking_request)?;
+        Self::check_available_seats(train, &booking_request.requested_seats)?;
+        Self::book_seats(train, &booking_request.requested_seats)?;
+        let booking = Self::create_booking(booking_request)?;
         self.repo.save_train(&trains)?;
+        tracing::info!("Booking {} created successfully", &booking.booking_id);
         Ok(booking)
     }
 
@@ -43,7 +44,7 @@ impl TrainService {
 
     fn book_seats(train: &mut Train, seats_required: &[SeatSelection]) -> Result<(), BookingError> {
         for seat_to_book in seats_required {
-            let seat = TrainService::find_seat_mut(train, seat_to_book);
+            let seat = Self::find_seat_mut(train, seat_to_book);
             if let Some(seat) = seat{
                 seat.status = SeatStatus::Booked
             }
@@ -63,10 +64,11 @@ impl TrainService {
     fn check_available_seats(train: &mut Train, seats_required: &[SeatSelection] ) -> Result<(), BookingError> {
         
         for seat_to_book in seats_required{
-            let seat = TrainService::find_seat_mut(train, seat_to_book);
+            let seat = Self::find_seat_mut(train, seat_to_book);
 
             if let Some(seat) = seat{
                 if seat.status == SeatStatus::Booked{
+                    tracing::error!("seat {} in wagon {} unavailable", seat_to_book.seat_number, seat_to_book.wagon_number);
                     return Err(BookingError::SeatTaken);
                 }
             }
@@ -96,13 +98,14 @@ impl TrainService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::repository::train_file_repository::TrainCompanyFileRepository;
 
     #[test]
     fn invalid_seat_returns_error() {
         let request = BookingRequest::new("Anesu",
              "a@live.com", 
              vec![SeatSelection{wagon_number: 1,seat_number: 51}]);
-        let result = TrainService::validate_booking(&request);
+        let result = TrainService::<TrainCompanyFileRepository>::validate_booking(&request);
         assert!(result.is_err());
     }
 
