@@ -93,6 +93,11 @@ impl <R: TrainRepository> TrainService<R> {
         Ok(())
     }
 
+    pub fn check_readiness(&self) -> std::io::Result<()> {
+        self.repo.ready()?;
+        Ok(())
+    }
+
 }
 
 #[cfg(test)]

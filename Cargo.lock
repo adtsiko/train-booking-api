@@ -664,9 +664,11 @@ name = "train-booking-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "http-body-util",
  "serde",
  "serde_json",
  "tokio",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "uuid",

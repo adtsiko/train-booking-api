@@ -15,9 +15,15 @@ pub enum BookingError {
     Io(std::io::Error),
 }
 
-#[derive(Serialize)]
+
+#[derive(Deserialize, Serialize)]
 pub struct ErrorResponse {
     pub error: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct HealthResponse {
+    pub status: String
 }
 
 impl From<std::io::Error> for BookingError {

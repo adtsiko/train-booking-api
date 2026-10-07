@@ -2,7 +2,7 @@ use std::path::Path;
 use std::fs;
 use std::io::{self, Result, Write};
 
-use crate::models::{Train, Wagon, Seat, SeatStatus};
+use crate::models::{Train, Wagon, Seat, SeatStatus, ErrorResponse};
 use crate::repository::train_repository::TrainRepository;
 
 #[derive(Clone)]
@@ -30,6 +30,16 @@ impl TrainRepository for TrainCompanyFileRepository {
 
         fs::write(&self.path, json)?;
         Ok(())
+    }
+
+    fn ready(&self) -> Result<()> {
+        match self.path.rsplit('.').next() {
+            Some("json") => Ok(()),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "storage layer not ready",
+            )),
+        }
     }
 }
 
