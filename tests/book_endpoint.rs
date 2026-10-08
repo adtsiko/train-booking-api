@@ -23,6 +23,7 @@ async fn book_happy_path_200() {
 
     assert_eq!(booking.user.username, "test1");
     assert_eq!(booking.booked_seats.len(), 2);
+    assert!(!booking.booking_id.to_string().is_empty());
     assert_eq!(status_code, StatusCode::OK);
 }
 
