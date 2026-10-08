@@ -64,6 +64,29 @@ curl -X POST http://127.0.0.1:3001/book \
 | 400 | Invalid seat or wagon number |
 | 500 | Internal / I/O error |
 
+## Development
+
+### Formatting
+
+```bash
+cargo fmt --all
+```
+
+CI runs `cargo fmt --all -- --check` on pull requests and pushes to `main`.
+
+### Pre-commit hook
+
+Enable the local hook so formatting is checked before each commit:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit
+```
+
+### Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs formatting checks and tests on pull requests and pushes to `main`.
+
 ## Test
 
 ```bash
