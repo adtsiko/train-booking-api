@@ -52,3 +52,17 @@ async fn seat_already_booked() {
     assert_eq!(booking_err.error, "seat already taken".to_string());
     assert_eq!(status_code, StatusCode::CONFLICT);
 }
+
+#[tokio::test]
+async fn invalid_booking_no_seats() {
+    let path = "test-book-no-seats.json";
+    let app = test_app(path);
+    let requested_seats: Vec<SeatSelection> = vec![];
+
+    let booking_request = create_booking("1", requested_seats);
+    let (response_body, status_code) = post_request(booking_request, &app).await;
+    let booking_err: ErrorResponse = serde_json::from_slice(&response_body).unwrap();
+
+    assert_eq!(booking_err.error, "no seat(s) requested".to_string());
+    assert_eq!(status_code, StatusCode::BAD_REQUEST);
+}

@@ -77,19 +77,11 @@ pub struct BookingRequest {
 }
 
 impl BookingRequest {
-    pub fn new(
-        username: &str,
-        email: &str,
-        requested_seats: Vec<SeatSelection>,
-    ) -> Result<Self, BookingError> {
-        if requested_seats.is_empty() {
-            return Err(BookingError::NoSeatsRequested);
-        }
-
-        Ok(Self {
+    pub fn new(username: &str, email: &str, requested_seats: Vec<SeatSelection>) -> Self {
+        Self {
             username: String::from(username),
             email: String::from(email),
             requested_seats,
-        })
+        }
     }
 }
