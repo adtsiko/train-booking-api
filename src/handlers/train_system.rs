@@ -12,7 +12,7 @@ pub async fn booking<R: TrainRepository + Clone>(
         let (status, message) = match e {
             BookingError::SeatTaken => (StatusCode::CONFLICT, "seat already taken"),
             BookingError::InvalidSeatNumber => (StatusCode::BAD_REQUEST, "invalid seat"),
-            BookingError::NoSeatsAvailable => (StatusCode::BAD_REQUEST, "no seats available"),
+            BookingError::NoSeatsRequested => (StatusCode::BAD_REQUEST, "no seat(s) requested"),
             BookingError::InvalidWagonNumber => (StatusCode::BAD_REQUEST, "invalid wagon"),
             BookingError::Io(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal error"),
         };

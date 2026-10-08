@@ -2,7 +2,7 @@ use std::fs;
 use std::io::{self, Result, Write};
 use std::path::Path;
 
-use crate::models::{ErrorResponse, Seat, SeatStatus, Train, Wagon};
+use crate::models::{Seat, SeatStatus, Train, Wagon};
 use crate::repository::train_repository::TrainRepository;
 
 #[derive(Clone)]
@@ -74,7 +74,6 @@ impl TrainCompanyFileRepository {
 
         let train = self.initialise_train()?;
         let json = serde_json::to_string_pretty(&[train])?;
-        file.write_all(b"[]")?;
         fs::write(&self.path, json)?;
         Ok(())
     }

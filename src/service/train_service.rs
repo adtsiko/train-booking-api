@@ -120,7 +120,9 @@ mod tests {
                 wagon_number: 1,
                 seat_number: 51,
             }],
-        );
+        )
+        .unwrap();
+
         let result = TrainService::<TrainCompanyFileRepository>::validate_booking(&request);
         assert!(result.is_err());
     }
