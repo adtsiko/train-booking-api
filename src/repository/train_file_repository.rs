@@ -1,28 +1,27 @@
-use std::path::Path;
 use std::fs;
 use std::io::{self, Result, Write};
+use std::path::Path;
 
-use crate::models::{Train, Wagon, Seat, SeatStatus, ErrorResponse};
+use crate::models::{ErrorResponse, Seat, SeatStatus, Train, Wagon};
 use crate::repository::train_repository::TrainRepository;
 
 #[derive(Clone)]
 pub struct TrainCompanyFileRepository {
-    path: String
+    path: String,
 }
 
 const WAGON_NUMBER: u32 = 4;
-const NUMBER_OF_SEATS_PER_WAGON: u32  = 50;
+const NUMBER_OF_SEATS_PER_WAGON: u32 = 50;
 
 impl TrainRepository for TrainCompanyFileRepository {
     fn load_train(&self) -> Result<Vec<Train>> {
-        if !Path::new(&self.path).exists(){
+        if !Path::new(&self.path).exists() {
             self.init_file()?;
         }
 
         let contents = fs::read_to_string(&self.path)?;
 
-        serde_json::from_str(&contents)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        serde_json::from_str(&contents).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
 
     fn save_train(&self, train: &[Train]) -> Result<()> {
@@ -45,7 +44,7 @@ impl TrainRepository for TrainCompanyFileRepository {
 
 impl TrainCompanyFileRepository {
     pub fn new(path: String) -> Self {
-        Self{path}
+        Self { path }
     }
 
     fn initialise_train(&self) -> Result<Train> {
@@ -54,27 +53,31 @@ impl TrainCompanyFileRepository {
 
         for wagon_idx in 1..=WAGON_NUMBER {
             seats.clear();
-            for seat_idx in 1..=NUMBER_OF_SEATS_PER_WAGON{
-                seats.push(Seat{number : seat_idx, status: SeatStatus::Available})
+            for seat_idx in 1..=NUMBER_OF_SEATS_PER_WAGON {
+                seats.push(Seat {
+                    number: seat_idx,
+                    status: SeatStatus::Available,
+                })
             }
-            wagons.push(Wagon{wagon_number: wagon_idx, seats: seats.clone()});
+            wagons.push(Wagon {
+                wagon_number: wagon_idx,
+                seats: seats.clone(),
+            });
         }
-        Ok(Train{wagons})
-
+        Ok(Train { wagons })
     }
     pub fn init_file(&self) -> Result<()> {
         let mut file = fs::OpenOptions::new()
-                .write(true)
-                .create(true)
-                .open(&self.path)?;
+            .write(true)
+            .create(true)
+            .open(&self.path)?;
 
         let train = self.initialise_train()?;
-        let json  = serde_json::to_string_pretty(&[train])?;
+        let json = serde_json::to_string_pretty(&[train])?;
         file.write_all(b"[]")?;
         fs::write(&self.path, json)?;
         Ok(())
     }
-
 }
 
 #[cfg(test)]
@@ -83,10 +86,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn valid_train_creation(){
+    fn valid_train_creation() {
         let repo = TrainCompanyFileRepository::new("train-test.json".to_string());
         repo.init_file().unwrap();
         assert!(Path::new("train-test.json").exists())
-
     }
 }

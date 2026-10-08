@@ -1,7 +1,7 @@
-pub mod models;
-pub mod repository;
-pub mod service;
-pub mod handlers;
-pub mod routes;
 pub mod config;
+pub mod handlers;
+pub mod models;
 pub mod openapi;
+pub mod repository;
+pub mod routes;
+pub mod service;
