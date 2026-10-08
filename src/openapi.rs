@@ -1,5 +1,5 @@
+use crate::models::{Booking, BookingRequest, ErrorResponse, SeatSelection, User};
 use utoipa::OpenApi;
-use crate::models::{Booking, BookingRequest, ErrorResponse, SeatSelection, User };
 
 #[utoipa::path(
     post,

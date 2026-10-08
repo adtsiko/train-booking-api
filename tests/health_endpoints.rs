@@ -2,7 +2,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
-use train_booking_api::models::{HealthResponse};
+use train_booking_api::models::HealthResponse;
 
 fn test_app(path: &str) -> axum::Router {
     let repo = train_booking_api::repository::TrainCompanyFileRepository::new(path.to_string());
@@ -11,7 +11,7 @@ fn test_app(path: &str) -> axum::Router {
 }
 
 #[tokio::test]
-async fn healt_returns_200() {
+async fn health_returns_200() {
     let app = test_app("test-health.json");
 
     let response = app
@@ -25,6 +25,4 @@ async fn healt_returns_200() {
     let json: HealthResponse = serde_json::from_slice(&body).unwrap();
 
     assert_eq!(json.status, "ok");
-
-
 }

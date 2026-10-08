@@ -1,6 +1,6 @@
 pub struct Config {
     pub port: u16,
-    pub data_path: String
+    pub data_path: String,
 }
 
 impl Config {
@@ -10,12 +10,8 @@ impl Config {
             .parse()
             .expect("APP_PORT must be a number");
 
-        let data_path = std::env::var("DATA_PATH")
-            .unwrap_or_else(|_| "train.json".to_string());
+        let data_path = std::env::var("DATA_PATH").unwrap_or_else(|_| "train.json".to_string());
 
-        Self {
-            port,
-            data_path
-        }
+        Self { port, data_path }
     }
 }

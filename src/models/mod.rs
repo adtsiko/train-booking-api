@@ -1,2 +1,5 @@
 pub mod models;
-pub use models::{Train, Wagon, Seat, SeatSelection, User, SeatStatus, BookingRequest, Booking, BookingError, ErrorResponse, HealthResponse};
+pub use models::{
+    Booking, BookingError, BookingRequest, ErrorResponse, HealthResponse, Seat, SeatSelection,
+    SeatStatus, Train, User, Wagon,
+};
