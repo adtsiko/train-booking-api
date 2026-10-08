@@ -88,6 +88,10 @@ impl<R: TrainRepository> TrainService<R> {
     }
 
     fn validate_booking(booking_request: &BookingRequest) -> Result<(), BookingError> {
+        if booking_request.requested_seats.is_empty() {
+            return Err(BookingError::NoSeatsRequested);
+        }
+
         for seat in &booking_request.requested_seats {
             if seat.seat_number > NUMBER_OF_SEATS_PER_WAGON {
                 return Err(BookingError::InvalidSeatNumber);
@@ -121,6 +125,15 @@ mod tests {
                 seat_number: 51,
             }],
         );
+
+        let result = TrainService::<TrainCompanyFileRepository>::validate_booking(&request);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn no_seats_booked() {
+        let request = BookingRequest::new("Anesu", "a@live.com", vec![]);
+
         let result = TrainService::<TrainCompanyFileRepository>::validate_booking(&request);
         assert!(result.is_err());
     }

@@ -8,10 +8,11 @@ pub enum SeatStatus {
     Available,
 }
 
+#[derive(Debug)]
 pub enum BookingError {
     SeatTaken,
     InvalidSeatNumber,
-    NoSeatsAvailable,
+    NoSeatsRequested,
     InvalidWagonNumber,
     Io(std::io::Error),
 }
