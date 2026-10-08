@@ -1,4 +1,5 @@
 use uuid::Uuid;
+use utoipa::ToSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq)]
@@ -16,12 +17,12 @@ pub enum BookingError {
 }
 
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct ErrorResponse {
     pub error: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: String
 }
@@ -38,7 +39,7 @@ pub struct Seat {
     pub status: SeatStatus 
 }
 
-#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, ToSchema)]
 pub struct SeatSelection {
     pub wagon_number: u32,
     pub seat_number: u32
@@ -55,20 +56,20 @@ pub struct Train {
     pub wagons: Vec<Wagon>
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct User {
     pub email: String,
     pub username: String
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct Booking {
     pub user: User,
     pub booking_id: Uuid,
     pub booked_seats: Vec<SeatSelection> 
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct BookingRequest {
     pub username: String,
     pub email: String,

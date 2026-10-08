@@ -33,6 +33,17 @@ cargo run
 
 By default the server listens on `http://127.0.0.1:3001`.
 
+## API documentation
+
+OpenAPI 3 spec is generated at runtime with [utoipa](https://github.com/juhaku/utoipa) from `src/openapi.rs`.
+
+| Resource | URL |
+|----------|-----|
+| Swagger UI | http://127.0.0.1:3001/docs |
+| OpenAPI JSON | http://127.0.0.1:3001/api-docs/openapi.json |
+
+`POST /book` is documented with request/response schemas and error responses (`400`, `409`, `500`).
+
 ## Book a seat
 
 ```bash
