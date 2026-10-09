@@ -1,0 +1,21 @@
+services:
+
+  postgres: 
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: train
+      POSTGRES_PASSWORD: train
+      POSTGRES_DB: train_booking
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U train -d train_booking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

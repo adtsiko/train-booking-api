@@ -1,5 +1,6 @@
 use crate::models::{
-    Booking, BookingError, BookingRequest, Seat, SeatSelection, SeatStatus, Train, User,
+    Booking, BookingError, BookingRequest, RepositoryError, Seat, SeatSelection, SeatStatus, Train,
+    User,
 };
 use crate::repository::train_repository::TrainRepository;
 use uuid::Uuid;
@@ -17,14 +18,17 @@ impl<R: TrainRepository> TrainService<R> {
         Self { repo }
     }
 
-    pub fn book_trip(&self, booking_request: BookingRequest) -> Result<Booking, BookingError> {
+    pub async fn book_trip(
+        &self,
+        booking_request: BookingRequest,
+    ) -> Result<Booking, BookingError> {
         Self::validate_booking(&booking_request)?;
-        let mut trains = self.repo.load_train()?;
+        let mut trains = self.repo.load_train().await?;
         let train = &mut trains[0];
         Self::check_available_seats(train, &booking_request.requested_seats)?;
         Self::book_seats(train, &booking_request.requested_seats)?;
         let booking = Self::create_booking(booking_request)?;
-        self.repo.save_train(&trains)?;
+        self.repo.save_train(&trains).await?;
         tracing::info!("Booking {} created successfully", &booking.booking_id);
         Ok(booking)
     }
@@ -104,9 +108,8 @@ impl<R: TrainRepository> TrainService<R> {
         Ok(())
     }
 
-    pub fn check_readiness(&self) -> std::io::Result<()> {
-        self.repo.ready()?;
-        Ok(())
+    pub async fn check_readiness(&self) -> Result<(), RepositoryError> {
+        self.repo.ready().await
     }
 }
 

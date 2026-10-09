@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use tracing_subscriber::EnvFilter;
 use train_booking_api::config::Config;
-use train_booking_api::repository::TrainCompanyFileRepository;
+use train_booking_api::repository::TrainCompanyPostgresRepository;
 use train_booking_api::routes;
 use train_booking_api::service::TrainService;
 
@@ -15,7 +15,9 @@ async fn main() {
         .init();
 
     let config = Config::from_env();
-    let repo = TrainCompanyFileRepository::new(config.data_path);
+    let repo = TrainCompanyPostgresRepository::new(&config.database_url)
+        .await
+        .expect("failed to connect to postgres");
     let service = TrainService::new(repo);
     let app = routes::create_router(service);
 
