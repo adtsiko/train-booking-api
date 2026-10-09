@@ -1,9 +1,9 @@
-use std::fs;
-use std::io::{self, Result, Write};
-use std::path::Path;
-
-use crate::models::{Seat, SeatStatus, Train, Wagon};
+use crate::models::{RepositoryError, Seat, SeatStatus, Train, Wagon};
 use crate::repository::train_repository::TrainRepository;
+use async_trait::async_trait;
+use std::fs;
+use std::io::{self, Result as IoResult, Write};
+use std::path::Path;
 
 #[derive(Clone)]
 pub struct TrainCompanyFileRepository {
@@ -13,31 +13,32 @@ pub struct TrainCompanyFileRepository {
 const WAGON_NUMBER: u32 = 4;
 const NUMBER_OF_SEATS_PER_WAGON: u32 = 50;
 
+#[async_trait]
 impl TrainRepository for TrainCompanyFileRepository {
-    fn load_train(&self) -> Result<Vec<Train>> {
+    async fn load_train(&self) -> Result<Vec<Train>, RepositoryError> {
         if !Path::new(&self.path).exists() {
-            self.init_file()?;
+            self.init_file().map_err(RepositoryError::Io)?;
         }
-
-        let contents = fs::read_to_string(&self.path)?;
-
-        serde_json::from_str(&contents).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+        let contents = fs::read_to_string(&self.path).map_err(RepositoryError::Io)?;
+        serde_json::from_str(&contents)
+            .map_err(|e| RepositoryError::Io(io::Error::new(io::ErrorKind::InvalidData, e)))
     }
 
-    fn save_train(&self, train: &[Train]) -> Result<()> {
-        let json = serde_json::to_string_pretty(&train)?;
+    async fn save_train(&self, train: &[Train]) -> Result<(), RepositoryError> {
+        let json = serde_json::to_string_pretty(&train)
+            .map_err(|e| RepositoryError::Io(io::Error::new(io::ErrorKind::InvalidData, e)))?;
 
-        fs::write(&self.path, json)?;
+        fs::write(&self.path, json).map_err(RepositoryError::Io)?;
         Ok(())
     }
 
-    fn ready(&self) -> Result<()> {
+    async fn ready(&self) -> Result<(), RepositoryError> {
         match self.path.rsplit('.').next() {
             Some("json") => Ok(()),
-            _ => Err(io::Error::new(
+            _ => Err(RepositoryError::Io(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "storage layer not ready",
-            )),
+            ))),
         }
     }
 }
@@ -47,7 +48,7 @@ impl TrainCompanyFileRepository {
         Self { path }
     }
 
-    fn initialise_train(&self) -> Result<Train> {
+    fn initialise_train(&self) -> IoResult<Train> {
         let mut wagons: Vec<Wagon> = vec![];
         let mut seats: Vec<Seat> = vec![];
 
@@ -66,7 +67,7 @@ impl TrainCompanyFileRepository {
         }
         Ok(Train { wagons })
     }
-    pub fn init_file(&self) -> Result<()> {
+    pub fn init_file(&self) -> IoResult<()> {
         let mut file = fs::OpenOptions::new()
             .write(true)
             .create(true)

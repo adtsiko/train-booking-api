@@ -1,6 +1,6 @@
 # train-booking-api
 
-REST API for booking train seats. A train has 4 wagons with 50 seats each. Seat availability is persisted to a JSON file.
+REST API for booking train seats. A train has 4 wagons with 50 seats each. The app uses PostgreSQL for persistence and readiness checks; integration tests use a file-based repository.
 
 ## Architecture
 
@@ -10,28 +10,77 @@ handlers → service → repository → models
 
 ## Configuration
 
-All settings are optional. Set them as environment variables when starting the server.
+Copy `.env.example` to `.env` and adjust as needed. All settings have defaults for local development.
 
-| Variable   | Default      | Description                          |
-|------------|--------------|--------------------------------------|
-| `APP_PORT` | `3001`       | TCP port the HTTP server binds to    |
-| `DATA_PATH`| `train.json` | Path to the JSON file for seat data  |
+| Variable       | Default                                                    | Description                              |
+|----------------|------------------------------------------------------------|------------------------------------------|
+| `DATABASE_URL` | `postgres://train:train@localhost:5432/train_booking`        | PostgreSQL connection string             |
+| `APP_PORT`     | `3001`                                                     | TCP port the HTTP server binds to        |
+| `DATA_PATH`    | `train.json`                                               | JSON file path (used by integration tests) |
 
 Example:
 
 ```bash
-APP_PORT=3001 DATA_PATH=./data/train.json cargo run
+cp .env.example .env
+cargo run
 ```
 
-No secrets are required to run the API locally.
+## Local development
 
-## Run
+### 1. Start PostgreSQL
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/). Start the daemon, then:
+
+```bash
+docker compose up -d
+```
+
+Check the database is healthy:
+
+```bash
+docker compose ps
+```
+
+### 2. Run migrations
+
+Migrations live in `migrations/` and are applied with [sqlx-cli](https://github.com/launchbadge/sqlx/tree/master/sqlx-cli).
+
+Install sqlx-cli once:
+
+```bash
+cargo install sqlx-cli --no-default-features --features postgres
+```
+
+Set `DATABASE_URL` (or copy `.env.example` to `.env` and export it), then apply all pending migrations:
+
+```bash
+export DATABASE_URL=postgres://train:train@localhost:5432/train_booking
+sqlx migrate run
+```
+
+Check migration status:
+
+```bash
+sqlx migrate info
+```
+
+Add a new migration:
+
+```bash
+sqlx migrate add <name>
+```
+
+This creates a timestamped file under `migrations/`. Edit the SQL, then run `sqlx migrate run` again.
+
+### 3. Run the API
 
 ```bash
 cargo run
 ```
 
 By default the server listens on `http://127.0.0.1:3001`.
+
+`GET /ready` returns `200` when PostgreSQL is reachable and `503` when it is not.
 
 ## API documentation
 

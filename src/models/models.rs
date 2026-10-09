@@ -9,12 +9,19 @@ pub enum SeatStatus {
 }
 
 #[derive(Debug)]
+pub enum RepositoryError {
+    Io(std::io::Error),
+    Database(sqlx::Error),
+}
+
+#[derive(Debug)]
 pub enum BookingError {
     SeatTaken,
     InvalidSeatNumber,
     NoSeatsRequested,
     InvalidWagonNumber,
     Io(std::io::Error),
+    Repository(RepositoryError),
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -30,6 +37,12 @@ pub struct HealthResponse {
 impl From<std::io::Error> for BookingError {
     fn from(err: std::io::Error) -> Self {
         BookingError::Io(err)
+    }
+}
+
+impl From<RepositoryError> for BookingError {
+    fn from(err: RepositoryError) -> Self {
+        BookingError::Repository(err)
     }
 }
 
