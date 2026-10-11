@@ -1,48 +1,75 @@
 use crate::models::{
-    Booking, BookingError, BookingRequest, RepositoryError, Seat, SeatSelection, SeatStatus, Train,
-    User,
+    Booking, BookingError, BookingRecord, BookingRequest, RepositoryError, Seat,
+    SeatInventoryRecord, SeatSelection, SeatStatus, Train, User,
 };
-use crate::repository::train_repository::TrainRepository;
+use crate::repository::{DbBooking, DbInventory};
+use chrono::Utc;
 use uuid::Uuid;
 
 const NUMBER_OF_SEATS_PER_WAGON: u32 = 50;
 const WAGON_NUMBER: u32 = 4;
 
 #[derive(Clone)]
-pub struct TrainService<R: TrainRepository> {
-    repo: R,
+pub struct TrainService<I: DbInventory, B: DbBooking> {
+    inventory_repo: I,
+    booking_repo: B,
 }
 
-impl<R: TrainRepository> TrainService<R> {
-    pub fn new(repo: R) -> Self {
-        Self { repo }
+impl<I: DbInventory, B: DbBooking> TrainService<I, B> {
+    pub fn new(inventory_repo: I, booking_repo: B) -> Self {
+        Self {
+            inventory_repo,
+            booking_repo,
+        }
     }
 
-    pub async fn book_trip(
-        &self,
-        booking_request: BookingRequest,
-    ) -> Result<Booking, BookingError> {
-        Self::validate_booking(&booking_request)?;
-        let mut trains = self.repo.load_train().await?;
-        let train = &mut trains[0];
-        Self::check_available_seats(train, &booking_request.requested_seats)?;
-        Self::book_seats(train, &booking_request.requested_seats)?;
-        let booking = Self::create_booking(booking_request)?;
-        self.repo.save_train(&trains).await?;
+    pub async fn book_trip(&self, request: BookingRequest) -> Result<Booking, BookingError> {
+        Self::validate_booking(&request)?;
+
+        let mut inventory_ids: Vec<SeatInventoryRecord> = vec![];
+
+        for seat in &request.requested_seats {
+            let inventory = self
+                .inventory_repo
+                .find_seat_inventory_for_update(
+                    request.journey_id,
+                    seat.wagon_number,
+                    seat.seat_number,
+                )
+                .await?;
+
+            todo!(); //check if seat is available
+        }
+
+        let record: BookingRecord = self
+            .booking_repo
+            .create_booking(
+                &request.journey_id,
+                &request.username,
+                &request.email,
+                &inventory_ids,
+            )
+            .await?;
+
+        let booking = Self::create_booking(request, record)?;
         tracing::info!("Booking {} created successfully", &booking.booking_id);
         Ok(booking)
     }
 
-    fn create_booking(booking_request: BookingRequest) -> Result<Booking, BookingError> {
+    fn create_booking(
+        request: BookingRequest,
+        record: BookingRecord,
+    ) -> Result<Booking, BookingError> {
         let user = User {
-            username: booking_request.username.clone(),
-            email: booking_request.email.clone(),
+            username: request.username.clone(),
+            email: request.email.clone(),
         };
 
         let booking = Booking {
             user: user,
-            booking_id: Uuid::new_v4(),
-            booked_seats: booking_request.requested_seats.clone(),
+            booking_id: record.id,
+            booked_seats: request.requested_seats.clone(),
+            created_at: Utc::now(),
         };
         Ok(booking)
     }
@@ -109,18 +136,24 @@ impl<R: TrainRepository> TrainService<R> {
     }
 
     pub async fn check_readiness(&self) -> Result<(), RepositoryError> {
-        self.repo.ready().await
+        let (inventory, booking) =
+            tokio::join! {self.inventory_repo.ready(), self.booking_repo.ready()};
+
+        inventory?;
+        booking?;
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::repository::train_file_repository::TrainCompanyFileRepository;
+    use crate::repository::postgres::{BookingRepository, InventoryRepository};
 
     #[test]
     fn invalid_seat_returns_error() {
         let request = BookingRequest::new(
+            Uuid::new_v4(),
             "Anesu",
             "a@live.com",
             vec![SeatSelection {
@@ -129,15 +162,17 @@ mod tests {
             }],
         );
 
-        let result = TrainService::<TrainCompanyFileRepository>::validate_booking(&request);
+        let result =
+            TrainService::<InventoryRepository, BookingRepository>::validate_booking(&request);
         assert!(result.is_err());
     }
 
     #[test]
     fn no_seats_booked() {
-        let request = BookingRequest::new("Anesu", "a@live.com", vec![]);
+        let request = BookingRequest::new(Uuid::new_v4(), "Anesu", "a@live.com", vec![]);
 
-        let result = TrainService::<TrainCompanyFileRepository>::validate_booking(&request);
+        let result =
+            TrainService::<InventoryRepository, BookingRepository>::validate_booking(&request);
         assert!(result.is_err());
     }
 }
