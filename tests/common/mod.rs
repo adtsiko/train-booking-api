@@ -30,7 +30,8 @@ fn clear_test_files(path: &str) {
 
 pub fn create_booking(user_id: &str, requested_seats: Vec<SeatSelection>) -> BookingRequest {
     BookingRequest {
-        journey_id: Uuid::new_v4(),
+        journey_id: Uuid::parse_str("22222222-2222-2222-2222-222222222222")
+            .expect("valid seeded journey id"),
         username: format!("test{}", user_id),
         email: format!("test{}@user.com", user_id),
         requested_seats,
