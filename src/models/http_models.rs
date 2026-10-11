@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -80,18 +81,27 @@ pub struct Booking {
     pub user: User,
     pub booking_id: Uuid,
     pub booked_seats: Vec<SeatSelection>,
+    #[schema(value_type = String, format = DateTime)]
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct BookingRequest {
+    pub journey_id: Uuid,
     pub username: String,
     pub email: String,
     pub requested_seats: Vec<SeatSelection>,
 }
 
 impl BookingRequest {
-    pub fn new(username: &str, email: &str, requested_seats: Vec<SeatSelection>) -> Self {
+    pub fn new(
+        journey_id: Uuid,
+        username: &str,
+        email: &str,
+        requested_seats: Vec<SeatSelection>,
+    ) -> Self {
         Self {
+            journey_id,
             username: String::from(username),
             email: String::from(email),
             requested_seats,

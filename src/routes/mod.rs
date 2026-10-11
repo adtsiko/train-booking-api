@@ -1,6 +1,6 @@
 use crate::handlers::train_system::{booking, health, readiness};
 use crate::openapi::ApiDoc;
-use crate::repository::train_repository::TrainRepository;
+use crate::repository::{DbBooking, DbInventory};
 use crate::service::TrainService;
 use axum::{
     Router,
@@ -10,8 +10,11 @@ use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-pub fn create_router<R: TrainRepository + Clone + Send + Sync + 'static>(
-    service: TrainService<R>,
+pub fn create_router<
+    I: DbInventory + Clone + Send + Sync + 'static,
+    B: DbBooking + Clone + Send + Sync + 'static,
+>(
+    service: TrainService<I, B>,
 ) -> Router {
     Router::new()
         .route("/book", post(booking))

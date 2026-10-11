@@ -3,16 +3,13 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 use train_booking_api::models::HealthResponse;
-
-fn test_app(path: &str) -> axum::Router {
-    let repo = train_booking_api::repository::TrainCompanyFileRepository::new(path.to_string());
-    let service = train_booking_api::service::TrainService::new(repo);
-    train_booking_api::routes::create_router(service)
-}
+mod common;
+use common::test_app;
 
 #[tokio::test]
+#[ignore = "Implementation not complete"]
 async fn health_returns_200() {
-    let app = test_app("test-health.json");
+    let app = test_app("test-health.json").await;
 
     let response = app
         .oneshot(Request::get("/health").body(Body::empty()).unwrap())

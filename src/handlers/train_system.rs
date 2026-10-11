@@ -1,11 +1,11 @@
 use axum::{Json, http::StatusCode};
 
 use crate::models::{Booking, BookingError, BookingRequest, ErrorResponse, HealthResponse};
-use crate::repository::train_repository::TrainRepository;
+use crate::repository::{DbBooking, DbInventory};
 use crate::service::TrainService;
 
-pub async fn booking<R: TrainRepository + Clone>(
-    axum::extract::State(service): axum::extract::State<TrainService<R>>,
+pub async fn booking<I: DbInventory + Clone, B: DbBooking + Clone>(
+    axum::extract::State(service): axum::extract::State<TrainService<I, B>>,
     Json(body): Json<BookingRequest>,
 ) -> Result<Json<Booking>, (StatusCode, Json<ErrorResponse>)> {
     service.book_trip(body).await.map(Json).map_err(|e| {
@@ -36,8 +36,8 @@ pub async fn health() -> (StatusCode, Json<HealthResponse>) {
     )
 }
 
-pub async fn readiness<R: TrainRepository + Clone>(
-    axum::extract::State(service): axum::extract::State<TrainService<R>>,
+pub async fn readiness<I: DbInventory + Clone, B: DbBooking + Clone>(
+    axum::extract::State(service): axum::extract::State<TrainService<I, B>>,
 ) -> (StatusCode, Json<HealthResponse>) {
     match service.check_readiness().await {
         Ok(()) => (
