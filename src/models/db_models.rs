@@ -1,4 +1,4 @@
-use crate::models::http_models::{SeatSelection, SeatStatus};
+use crate::models::http_models::SeatStatus;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -35,10 +35,27 @@ pub struct SeatInventoryRecord {
     pub status: SeatStatus,
 }
 
+#[derive(sqlx::FromRow)]
+pub struct SeatInventoryRow {
+    pub id: Uuid,
+    pub journey_id: Uuid,
+    pub seat_id: Uuid,
+    pub status: String,
+}
+
+#[derive(Debug, sqlx::FromRow)]
 pub struct BookingRecord {
     pub id: Uuid,
     pub journey_id: Uuid,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(sqlx::FromRow)]
+pub struct BookingRow {
+    pub id: Uuid,
+    pub journey_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub booked_seats: serde_json::Value,
 }
 
 pub struct PassengerRecord {

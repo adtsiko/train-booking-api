@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n     b.id,\n     b.journey_id,\n     b.created_at,\n     COALESCE(\n          json_agg(\n               json_build_object(\n                    'coach_number', c.coach_number,\n                    'seat_number', s.seat_number\n          )\n          ORDER BY c.coach_number, s.seat_number\n     ) FILTER (WHERE si.id IS NOT NULL),\n     '[]'::json\n     ) AS \"booked_seats!\"\nFROM bookings b\nINNER JOIN passengers ON b.id = passengers.booking_id\nLEFT JOIN booking_seats bs ON b.id = bs.booking_id\nLEFT JOIN seat_inventory si ON bs.seat_inventory_id = si.id\nLEFT JOIN seats s ON si.seat_id = s.id\nLEFT JOIN coaches c ON s.coach_id = c.id\nWHERE passengers.email = $1\nGROUP BY b.id, b.journey_id, b.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "journey_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "booked_seats!",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "a1d36018ab5e8de0d0e043313c3b5603d33003a8aadd35bfaeb4acacfb51996a"
+}

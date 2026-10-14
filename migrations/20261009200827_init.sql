@@ -1,3 +1,6 @@
+-- Enable pgcrypto extension for UUID generation
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Product definition (optional but realistic)
 CREATE TABLE train_services (
     id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),

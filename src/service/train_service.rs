@@ -1,13 +1,11 @@
 use crate::models::{
-    Booking, BookingError, BookingRecord, BookingRequest, RepositoryError, Seat,
-    SeatInventoryRecord, SeatSelection, SeatStatus, Train, User,
+    Booking, BookingError, BookingRecord, BookingRequest, RepositoryError, SeatInventoryRecord,
+    SeatStatus,
 };
 use crate::repository::{DbBooking, DbInventory};
-use chrono::Utc;
-use uuid::Uuid;
 
-const NUMBER_OF_SEATS_PER_WAGON: u32 = 50;
-const WAGON_NUMBER: u32 = 4;
+const NUMBER_OF_SEATS_PER_COACH: u32 = 50;
+const COACH_NUMBER: u32 = 4;
 
 #[derive(Clone)]
 pub struct TrainService<I: DbInventory, B: DbBooking> {
@@ -25,25 +23,41 @@ impl<I: DbInventory, B: DbBooking> TrainService<I, B> {
 
     pub async fn book_trip(&self, request: BookingRequest) -> Result<Booking, BookingError> {
         Self::validate_booking(&request)?;
-
+        let mut tx = self
+            .inventory_repo
+            .pool()
+            .begin()
+            .await
+            .map_err(RepositoryError::Database)?;
         let mut inventory_ids: Vec<SeatInventoryRecord> = vec![];
 
         for seat in &request.requested_seats {
             let inventory = self
                 .inventory_repo
                 .find_seat_inventory_for_update(
+                    &mut tx,
                     request.journey_id,
-                    seat.wagon_number,
+                    seat.coach_number,
                     seat.seat_number,
                 )
                 .await?;
 
-            todo!(); //check if seat is available
+            if inventory.status != SeatStatus::Available {
+                return Err(BookingError::SeatTaken);
+            }
+
+            let booked = self
+                .inventory_repo
+                .mark_seat_booked(&mut tx, inventory.id)
+                .await?;
+
+            inventory_ids.push(booked);
         }
 
         let record: BookingRecord = self
             .booking_repo
             .create_booking(
+                &mut tx,
                 &request.journey_id,
                 &request.username,
                 &request.email,
@@ -51,71 +65,22 @@ impl<I: DbInventory, B: DbBooking> TrainService<I, B> {
             )
             .await?;
 
-        let booking = Self::create_booking(request, record)?;
-        tracing::info!("Booking {} created successfully", &booking.booking_id);
+        tx.commit().await.map_err(RepositoryError::Database)?;
+        let booking = Self::map_booking(request, record)?;
+        tracing::info!("Booking {} created successfully", &booking.id);
         Ok(booking)
     }
 
-    fn create_booking(
+    fn map_booking(
         request: BookingRequest,
         record: BookingRecord,
     ) -> Result<Booking, BookingError> {
-        let user = User {
-            username: request.username.clone(),
-            email: request.email.clone(),
-        };
-
-        let booking = Booking {
-            user: user,
-            booking_id: record.id,
+        Ok(Booking {
+            id: record.id,
+            journey_id: request.journey_id,
             booked_seats: request.requested_seats.clone(),
-            created_at: Utc::now(),
-        };
-        Ok(booking)
-    }
-
-    fn book_seats(train: &mut Train, seats_required: &[SeatSelection]) -> Result<(), BookingError> {
-        for seat_to_book in seats_required {
-            let seat = Self::find_seat_mut(train, seat_to_book);
-            if let Some(seat) = seat {
-                seat.status = SeatStatus::Booked
-            } else {
-                return Err(BookingError::InvalidSeatNumber);
-            }
-        }
-        Ok(())
-    }
-
-    fn find_seat_mut<'a>(train: &'a mut Train, sel: &SeatSelection) -> Option<&'a mut Seat> {
-        let wagon = train
-            .wagons
-            .iter_mut()
-            .find(|w| w.wagon_number == sel.wagon_number);
-        wagon.and_then(|w| w.seats.iter_mut().find(|s| s.number == sel.seat_number))
-    }
-
-    fn check_available_seats(
-        train: &mut Train,
-        seats_required: &[SeatSelection],
-    ) -> Result<(), BookingError> {
-        for seat_to_book in seats_required {
-            let seat = Self::find_seat_mut(train, seat_to_book);
-
-            if let Some(seat) = seat {
-                if seat.status == SeatStatus::Booked {
-                    tracing::error!(
-                        "seat {} in wagon {} unavailable",
-                        seat_to_book.seat_number,
-                        seat_to_book.wagon_number
-                    );
-                    return Err(BookingError::SeatTaken);
-                }
-            } else {
-                return Err(BookingError::InvalidSeatNumber);
-            }
-        }
-
-        Ok(())
+            created_at: record.created_at,
+        })
     }
 
     fn validate_booking(booking_request: &BookingRequest) -> Result<(), BookingError> {
@@ -124,15 +89,21 @@ impl<I: DbInventory, B: DbBooking> TrainService<I, B> {
         }
 
         for seat in &booking_request.requested_seats {
-            if seat.seat_number > NUMBER_OF_SEATS_PER_WAGON {
+            if seat.seat_number > NUMBER_OF_SEATS_PER_COACH {
                 return Err(BookingError::InvalidSeatNumber);
             }
-            if seat.wagon_number > WAGON_NUMBER || seat.wagon_number < 1 {
-                return Err(BookingError::InvalidWagonNumber);
+            if seat.coach_number > COACH_NUMBER || seat.coach_number < 1 {
+                return Err(BookingError::InvalidCoachNumber);
             }
         }
 
         Ok(())
+    }
+
+    pub async fn get_user_bookings(&self, email: &str) -> Result<Vec<Booking>, BookingError> {
+        let bookings = self.booking_repo.get_bookings_by_email(email).await?;
+
+        Ok(bookings)
     }
 
     pub async fn check_readiness(&self) -> Result<(), RepositoryError> {
@@ -148,7 +119,9 @@ impl<I: DbInventory, B: DbBooking> TrainService<I, B> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::SeatSelection;
     use crate::repository::postgres::{BookingRepository, InventoryRepository};
+    use uuid::Uuid;
 
     #[test]
     fn invalid_seat_returns_error() {
@@ -157,7 +130,7 @@ mod tests {
             "Anesu",
             "a@live.com",
             vec![SeatSelection {
-                wagon_number: 1,
+                coach_number: 1,
                 seat_number: 51,
             }],
         );

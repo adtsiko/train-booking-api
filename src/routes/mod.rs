@@ -1,4 +1,4 @@
-use crate::handlers::train_system::{booking, health, readiness};
+use crate::handlers::train_system::{booking, fetch_bookings, health, readiness};
 use crate::openapi::ApiDoc;
 use crate::repository::{DbBooking, DbInventory};
 use crate::service::TrainService;
@@ -17,7 +17,7 @@ pub fn create_router<
     service: TrainService<I, B>,
 ) -> Router {
     Router::new()
-        .route("/book", post(booking))
+        .route("/bookings", post(booking).get(fetch_bookings))
         .route("/health", get(health))
         .route("/ready", get(readiness))
         .with_state(service)

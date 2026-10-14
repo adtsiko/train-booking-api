@@ -1,3 +1,4 @@
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tracing_subscriber::EnvFilter;
 use train_booking_api::config::Config;
@@ -15,12 +16,17 @@ async fn main() {
         .init();
 
     let config = Config::from_env();
-    let booking_repo = BookingRepository::new(&config.database_url)
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&config.database_url)
         .await
         .expect("failed to connect to postgres");
-    let inventory_repo = InventoryRepository::new(&config.database_url)
+    let booking_repo = BookingRepository::new(pool.clone())
         .await
-        .expect("failed to connect to postgres");
+        .expect("failed to create booking");
+    let inventory_repo = InventoryRepository::new(pool)
+        .await
+        .expect("failed to create inventory repo");
     let service = TrainService::new(inventory_repo, booking_repo);
     let app = routes::create_router(service);
 

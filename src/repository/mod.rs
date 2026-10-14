@@ -2,9 +2,12 @@ pub mod postgres;
 pub use postgres::{BookingRepository, InventoryRepository};
 
 use crate::models::RepositoryError;
-use crate::models::db_models::{BookingRecord, SeatInventoryRecord};
+use crate::models::{
+    Booking,
+    db_models::{BookingRecord, SeatInventoryRecord},
+};
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 #[async_trait]
@@ -25,12 +28,14 @@ pub trait DbRepository: Send + Sync + Clone {
 pub trait DbInventory: DbRepository {
     async fn find_seat_inventory_for_update(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         journey_id: Uuid,
         coach: u32,
         seat: u32,
-    ) -> Result<(), RepositoryError>;
+    ) -> Result<SeatInventoryRecord, RepositoryError>;
     async fn mark_seat_booked(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         inventory_id: Uuid,
     ) -> Result<SeatInventoryRecord, RepositoryError>;
 }
@@ -39,9 +44,12 @@ pub trait DbInventory: DbRepository {
 pub trait DbBooking: DbRepository {
     async fn create_booking(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         journey_id: &Uuid,
         username: &String,
         email: &String,
         seat_inventory_ids: &Vec<SeatInventoryRecord>,
     ) -> Result<BookingRecord, RepositoryError>;
+
+    async fn get_bookings_by_email(&self, email: &str) -> Result<Vec<Booking>, RepositoryError>;
 }

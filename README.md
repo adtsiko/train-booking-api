@@ -101,7 +101,7 @@ curl -X POST http://127.0.0.1:3001/book \
   -d '{
     "username": "Noa",
     "email": "noa@example.com",
-    "requested_seats": [{"wagon_number": 1, "seat_number": 2}]
+    "requested_seats": [{"coach_number": 1, "seat_number": 2}]
   }'
 ```
 

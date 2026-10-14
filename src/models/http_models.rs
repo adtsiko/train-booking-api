@@ -1,12 +1,26 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq)]
 pub enum SeatStatus {
     Booked,
     Available,
+    Held,
+}
+
+impl SeatStatus {
+    pub fn from_db(value: &str) -> Result<Self, RepositoryError> {
+        match value {
+            "available" => Ok(SeatStatus::Available),
+            "held" => Ok(SeatStatus::Held),
+            "booked" => Ok(SeatStatus::Booked),
+            other => Err(RepositoryError::Database(sqlx::Error::Protocol(
+                format!("unknown seat_status: {other}").into(),
+            ))),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -20,7 +34,7 @@ pub enum BookingError {
     SeatTaken,
     InvalidSeatNumber,
     NoSeatsRequested,
-    InvalidWagonNumber,
+    InvalidCoachNumber,
     Io(std::io::Error),
     Repository(RepositoryError),
 }
@@ -53,21 +67,21 @@ pub struct Seat {
     pub status: SeatStatus,
 }
 
-#[derive(Debug, Deserialize, Serialize, Copy, Clone, ToSchema)]
+#[derive(Debug, Deserialize, Serialize, Copy, PartialEq, Clone, ToSchema)]
 pub struct SeatSelection {
-    pub wagon_number: u32,
+    pub coach_number: u32,
     pub seat_number: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Wagon {
-    pub wagon_number: u32,
+pub struct Coach {
+    pub coach_number: u32,
     pub seats: Vec<Seat>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Train {
-    pub wagons: Vec<Wagon>,
+    pub coaches: Vec<Coach>,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
@@ -78,11 +92,15 @@ pub struct User {
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct Booking {
-    pub user: User,
-    pub booking_id: Uuid,
-    pub booked_seats: Vec<SeatSelection>,
+    pub id: Uuid,
+    pub journey_id: Uuid,
     #[schema(value_type = String, format = DateTime)]
     pub created_at: DateTime<Utc>,
+    pub booked_seats: Vec<SeatSelection>,
+}
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct BookingQuery {
+    pub email: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
